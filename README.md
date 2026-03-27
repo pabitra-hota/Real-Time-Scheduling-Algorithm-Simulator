@@ -95,4 +95,4 @@ Shruti Jairath
 👨‍💻 Collaborators :
 Pabitra Hota, 
 Ayush Mishra, 
-Krisna
+Krishna Sharma
