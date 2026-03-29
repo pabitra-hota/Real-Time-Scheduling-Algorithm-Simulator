@@ -93,6 +93,6 @@ Simulation Statistics Dashboard
 👨‍🏫 Mentor: 
 Shruti Jairath
 👨‍💻 Collaborators :
-Pabitra Hota, 
-Ayush Mishra, 
+Pabitra Ranjan Hota, 
+Ayush Kumar, 
 Krishna Sharma
