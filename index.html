@@ -730,6 +730,7 @@ body {
 
 <!-- ── Main Two-Column Layout ── -->
 <main id="main-layout">
+  
 
   <!-- ── Left Panel: Inputs + Controls ── -->
   <aside id="left-panel">
@@ -813,16 +814,19 @@ body {
       </div>
       <div class="card-body">
         <div id="controls-bar">
-          <button class="ctrl-btn run-btn" id="btn-run" disabled>▶ Run</button>
-          <button class="ctrl-btn" id="btn-pause" disabled>⏸ Pause</button>
-          <button class="ctrl-btn" id="btn-step" disabled>⏭ Step</button>
-          <button class="ctrl-btn" id="btn-reset" disabled>🔄 Reset</button>
-          <div class="speed-control">
-            <label>Speed</label>
-            <input type="range" id="speed-slider" min="50" max="1000" value="300" step="50">
-            <span class="speed-val" id="speed-val">300ms</span>
-          </div>
-        </div>
+  <!-- ✅ disabled hata diya -->
+  <button class="ctrl-btn run-btn" id="btn-run">▶ Run</button>
+
+  <button class="ctrl-btn" id="btn-pause" disabled>⏸ Pause</button>
+  <button class="ctrl-btn" id="btn-step" disabled>⏭ Step</button>
+  <button class="ctrl-btn" id="btn-reset" disabled>🔄 Reset</button>
+
+  <div class="speed-control">
+    <label>Speed</label>
+    <input type="range" id="speed-slider" min="50" max="1000" value="300" step="50">
+    <span class="speed-val" id="speed-val">300ms</span>
+  </div>
+</div>
       </div>
     </div>
   </aside>
@@ -875,7 +879,7 @@ body {
 
   </section>
 </main>
-
+<script src="scheduler.js"></script>
 
 </body>
 </html>
