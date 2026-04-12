@@ -46,11 +46,192 @@ document.addEventListener("DOMContentLoaded", function() {
     return tasks.map((_, i) => i); // placeholder logic
   }
 
-  // Algorithm toggle (RM / EDF)
-  document.querySelectorAll(".algo-btn").forEach(btn => {
-    btn.addEventListener("click", function() {
-      document.querySelectorAll(".algo-btn").forEach(b => b.classList.remove("active"));
-      this.classList.add("active");
-    });
-  });
+ // ─────────────────────────────────────────────
+  // --- RM SCHEDULER ---
+  // Rate Monotonic: fixed priority = shorter period → higher priority
+  // ─────────────────────────────────────────────
+  function simulateRM(tasks, hyperperiod) {
+    // Assign priority: index in sorted-by-period order (0 = highest)
+    const sorted = tasks.map((t, i) => ({ ...t, origIndex: i }))
+                        .sort((a, b) => a.period - b.period);
+    // Priority map: origIndex → priority rank (lower = higher)
+    const priorityRank = {};
+    sorted.forEach((t, rank) => { priorityRank[t.origIndex] = rank; });
 
+    // Job queue: active job instances
+    // Each job: { taskIdx, releaseTime, deadline, remaining }
+    let jobs = [];
+    const log = [];         // per time-unit execution log
+    const schedule = [];    // schedule[t] = taskIdx or -1 (idle)
+    let preemptions = 0;
+    const missedDeadlines = []; // { taskIdx, time }
+
+    for (let t = 0; t < hyperperiod; t++) {
+      // Release new jobs at this time
+      tasks.forEach((task, idx) => {
+        if (t % task.period === 0) {
+          jobs.push({
+            taskIdx: idx,
+            releaseTime: t,
+            deadline: t + task.period,
+            remaining: task.wcet
+          });
+        }
+      });
+
+      // Check for missed deadlines (jobs whose deadline == t and remaining > 0)
+      jobs = jobs.filter(j => {
+        if (j.deadline === t && j.remaining > 0) {
+          missedDeadlines.push({ taskIdx: j.taskIdx, time: t });
+          return false; // remove the missed job
+        }
+        return true;
+      });
+
+      // Also remove completed jobs (remaining == 0)
+      jobs = jobs.filter(j => j.remaining > 0);
+
+      // Pick highest priority job (lowest priorityRank)
+      // Among same priority, pick earliest released
+      let best = null;
+      for (const j of jobs) {
+        if (!best ||
+            priorityRank[j.taskIdx] < priorityRank[best.taskIdx] ||
+            (priorityRank[j.taskIdx] === priorityRank[best.taskIdx] && j.releaseTime < best.releaseTime)) {
+          best = j;
+        }
+      }
+
+      const prevRunning = t > 0 ? schedule[t - 1] : -1;
+      let preempted = false;
+
+      if (best) {
+        // Check preemption: was a DIFFERENT task running before, and the previous task still has remaining work?
+        if (t > 0 && prevRunning !== -1 && prevRunning !== best.taskIdx) {
+          // Check if the previously running task still has a live job
+          const prevStillActive = jobs.some(j => j.taskIdx === prevRunning && j.remaining > 0);
+          if (prevStillActive) {
+            preempted = true;
+            preemptions++;
+          }
+        }
+        best.remaining--;
+        schedule.push(best.taskIdx);
+      } else {
+        schedule.push(-1); // idle
+      }
+
+      // Build queue string (tasks with remaining > 0, excluding the running one)
+      const queue = jobs
+        .filter(j => best ? j !== best : true)
+        .filter(j => j.remaining > 0)
+        .map(j => tasks[j.taskIdx].name);
+
+      log.push({
+        time: t,
+        running: best ? tasks[best.taskIdx].name : 'Idle',
+        runningIdx: best ? best.taskIdx : -1,
+        queue,
+        preempted,
+        missed: missedDeadlines.filter(m => m.time === t).map(m => tasks[m.taskIdx].name)
+      });
+    }
+
+    // Final deadline check at hyperperiod end
+    jobs.forEach(j => {
+      if (j.deadline <= hyperperiod && j.remaining > 0) {
+        missedDeadlines.push({ taskIdx: j.taskIdx, time: hyperperiod });
+      }
+    });
+
+    return { schedule, log, preemptions, missedDeadlines, priorityRank };
+  }
+//pabitra--
+  // ─────────────────────────────────────────────
+  // --- EDF SCHEDULER ---
+  // Earliest Deadline First: dynamic priority = nearest absolute deadline
+  // ─────────────────────────────────────────────
+  function simulateEDF(tasks, hyperperiod) {
+    let jobs = [];
+    const log = [];
+    const schedule = [];
+    let preemptions = 0;
+    const missedDeadlines = [];
+
+    for (let t = 0; t < hyperperiod; t++) {
+      // Release new jobs
+      tasks.forEach((task, idx) => {
+        if (t % task.period === 0) {
+          jobs.push({
+            taskIdx: idx,
+            releaseTime: t,
+            deadline: t + task.period,
+            remaining: task.wcet
+          });
+        }
+      });
+
+      // Check missed deadlines
+      jobs = jobs.filter(j => {
+        if (j.deadline === t && j.remaining > 0) {
+          missedDeadlines.push({ taskIdx: j.taskIdx, time: t });
+          return false;
+        }
+        return true;
+      });
+
+      // Remove completed jobs
+      jobs = jobs.filter(j => j.remaining > 0);
+
+      // Pick job with earliest deadline; ties broken by task index (lower = higher)
+      let best = null;
+      for (const j of jobs) {
+        if (!best ||
+            j.deadline < best.deadline ||
+            (j.deadline === best.deadline && j.taskIdx < best.taskIdx)) {
+          best = j;
+        }
+      }
+
+      const prevRunning = t > 0 ? schedule[t - 1] : -1;
+      let preempted = false;
+
+      if (best) {
+        if (t > 0 && prevRunning !== -1 && prevRunning !== best.taskIdx) {
+          const prevStillActive = jobs.some(j => j.taskIdx === prevRunning && j.remaining > 0);
+          if (prevStillActive) {
+            preempted = true;
+            preemptions++;
+          }
+        }
+        best.remaining--;
+        schedule.push(best.taskIdx);
+      } else {
+        schedule.push(-1);
+      }
+
+      const queue = jobs
+        .filter(j => best ? j !== best : true)
+        .filter(j => j.remaining > 0)
+        .map(j => tasks[j.taskIdx].name);
+
+      log.push({
+        time: t,
+        running: best ? tasks[best.taskIdx].name : 'Idle',
+        runningIdx: best ? best.taskIdx : -1,
+        queue,
+        preempted,
+        missed: missedDeadlines.filter(m => m.time === t).map(m => tasks[m.taskIdx].name)
+      });
+    }
+
+    // Final check
+    jobs.forEach(j => {
+      if (j.deadline <= hyperperiod && j.remaining > 0) {
+        missedDeadlines.push({ taskIdx: j.taskIdx, time: hyperperiod });
+      }
+    });
+
+    return { schedule, log, preemptions, missedDeadlines };
+  }
+//pabitra---/
