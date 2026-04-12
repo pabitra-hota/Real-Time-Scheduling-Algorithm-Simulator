@@ -234,4 +234,5 @@ document.addEventListener("DOMContentLoaded", function() {
 
     return { schedule, log, preemptions, missedDeadlines };
   }
-//pabitra---/
+//pabitra---
+})
