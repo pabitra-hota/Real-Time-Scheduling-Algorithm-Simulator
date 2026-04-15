@@ -146,93 +146,32 @@ document.addEventListener("DOMContentLoaded", function() {
 
     return { schedule, log, preemptions, missedDeadlines, priorityRank };
   }
-//pabitra--
-  // ─────────────────────────────────────────────
-  // --- EDF SCHEDULER ---
-  // Earliest Deadline First: dynamic priority = nearest absolute deadline
-  // ─────────────────────────────────────────────
-  function simulateEDF(tasks, hyperperiod) {
-    let jobs = [];
-    const log = [];
-    const schedule = [];
-    let preemptions = 0;
-    const missedDeadlines = [];
 
-    for (let t = 0; t < hyperperiod; t++) {
-      // Release new jobs
-      tasks.forEach((task, idx) => {
-        if (t % task.period === 0) {
-          jobs.push({
-            taskIdx: idx,
-            releaseTime: t,
-            deadline: t + task.period,
-            remaining: task.wcet
-          });
-        }
-      });
 
-      // Check missed deadlines
-      jobs = jobs.filter(j => {
-        if (j.deadline === t && j.remaining > 0) {
-          missedDeadlines.push({ taskIdx: j.taskIdx, time: t });
-          return false;
-        }
-        return true;
-      });
+ // =========================
+  // 🔥 PART 3: RUN INTEGRATION
+  // =========================
 
-      // Remove completed jobs
-      jobs = jobs.filter(j => j.remaining > 0);
+  document.getElementById("btn-run").addEventListener("click", function() {
 
-      // Pick job with earliest deadline; ties broken by task index (lower = higher)
-      let best = null;
-      for (const j of jobs) {
-        if (!best ||
-            j.deadline < best.deadline ||
-            (j.deadline === best.deadline && j.taskIdx < best.taskIdx)) {
-          best = j;
-        }
-      }
-
-      const prevRunning = t > 0 ? schedule[t - 1] : -1;
-      let preempted = false;
-
-      if (best) {
-        if (t > 0 && prevRunning !== -1 && prevRunning !== best.taskIdx) {
-          const prevStillActive = jobs.some(j => j.taskIdx === prevRunning && j.remaining > 0);
-          if (prevStillActive) {
-            preempted = true;
-            preemptions++;
-          }
-        }
-        best.remaining--;
-        schedule.push(best.taskIdx);
-      } else {
-        schedule.push(-1);
-      }
-
-      const queue = jobs
-        .filter(j => best ? j !== best : true)
-        .filter(j => j.remaining > 0)
-        .map(j => tasks[j.taskIdx].name);
-
-      log.push({
-        time: t,
-        running: best ? tasks[best.taskIdx].name : 'Idle',
-        runningIdx: best ? best.taskIdx : -1,
-        queue,
-        preempted,
-        missed: missedDeadlines.filter(m => m.time === t).map(m => tasks[m.taskIdx].name)
-      });
+    if (tasks.length === 0) {
+      alert("Add tasks first");
+      return;
     }
 
-    // Final check
-    jobs.forEach(j => {
-      if (j.deadline <= hyperperiod && j.remaining > 0) {
-        missedDeadlines.push({ taskIdx: j.taskIdx, time: hyperperiod });
-      }
-    });
+    let hyper = lcmArray(tasks.map(t => t.period));
 
-    return { schedule, log, preemptions, missedDeadlines };
-  }
-//pabitra---
-})
+    let algo = document.querySelector(".algo-btn.active").dataset.algo;
+
+    let result;
+
+    if (algo === "RM") {
+      result = simulateRM(tasks, hyper);
+    } else {
+      result = simulateEDF(tasks, hyper);
+    }
+
+    console.log("FINAL RESULT:", result);
+  });
+
+});
