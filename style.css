@@ -93,6 +93,7 @@ body {
   grid-template-columns: 360px 1fr;
   gap: 0;
   align-items: start;
+  min-width: 0;
 }
 
 /* ── Left Panel ── */
@@ -101,12 +102,16 @@ body {
   border-right: 1px solid var(--border-color);
   padding: 1.5rem;
   overflow-y: auto;
-  max-height: calc(100vh - 60px);
+  /* Use dvh for correct sticky panel height on all screen sizes/orientations */
+  max-height: calc(100dvh - 60px);
   position: sticky;
   top: 60px;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  /* Prevent left panel from squishing content on resize */
+  min-width: 0;
+  width: 100%;
 }
 
 /* ── Right Panel ── */
@@ -116,6 +121,9 @@ body {
   flex-direction: column;
   gap: 1.5rem;
   padding-bottom: 3rem;
+  /* Prevent overflow on resize */
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* ── Section Cards ── */
@@ -452,10 +460,16 @@ body {
   overflow-x: auto;
   overflow-y: visible;
   padding-bottom: 0.5rem;
+  /* Ensure container doesn't overflow parent on resize */
+  max-width: 100%;
 }
 
 #gantt-chart {
   position: relative;
+  /* Use a CSS custom property for cell width, JS will keep this in sync */
+  --gantt-cell-w: 34px;
+  /* min-width ensures horizontal scroll when too many cells */
+  display: inline-block;
   min-width: 100%;
 }
 
@@ -463,6 +477,8 @@ body {
   display: flex;
   align-items: center;
   margin-bottom: 2px;
+  /* Prevent row from compressing cells below min-width */
+  min-width: max-content;
 }
 
 .gantt-label {
@@ -473,23 +489,26 @@ body {
   color: var(--text-secondary);
   padding-right: 0.6rem;
   text-align: right;
+  flex-shrink: 0;
 }
 
 .gantt-track {
   display: flex;
-  flex: 1;
   height: 32px;
   position: relative;
+  /* Track should not flex-shrink; cells drive the width */
+  flex-shrink: 0;
 }
 
 .gantt-cell {
-  width: 34px;
-  min-width: 34px;
+  width: var(--gantt-cell-w, 34px);
+  min-width: var(--gantt-cell-w, 34px);
   height: 32px;
   border: 1px solid var(--bg-primary);
   border-radius: 3px;
   transition: opacity 0.3s ease;
   position: relative;
+  flex-shrink: 0;
 }
 
 .gantt-cell.filled {
@@ -537,14 +556,17 @@ body {
   display: flex;
   margin-left: 60px;
   margin-top: 4px;
+  /* Time axis must match gantt rows exactly */
+  min-width: max-content;
 }
 
 .gantt-time-label {
-  width: 34px;
-  min-width: 34px;
+  width: var(--gantt-cell-w, 34px);
+  min-width: var(--gantt-cell-w, 34px);
   text-align: center;
   font-size: 0.6rem;
   color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 /* ── Execution Log ── */
@@ -686,12 +708,20 @@ body {
     grid-template-columns: 1fr;
   }
   #left-panel {
+    /* Un-stick the left panel on small screens so it doesn't trap scroll */
+    position: static;
     max-height: none;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
+    width: 100%;
   }
   #right-panel {
-    max-height: none;
+    padding: 1rem;
+    overflow: visible;
+  }
+  #gantt-container {
+    /* Give horizontal scroll room on mobile */
+    -webkit-overflow-scrolling: touch;
   }
 }
 
