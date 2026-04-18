@@ -470,10 +470,43 @@
   // ─────────────────────────────────────────────
   const GanttRenderer = (() => {
     const container  = document.getElementById('gantt-chart');
+    const ganttWrap  = document.getElementById('gantt-container');
     const emptyState = document.getElementById('gantt-empty');
     let cellMap = {};
+    let _hyperperiod = 0;
+
+    // ── Responsive cell width ──
+    // Compute the best cell width: try to fit all cells in the visible
+    // container area, but enforce a min of 20px and max of 50px per cell.
+    function computeCellWidth(hp) {
+      if (!hp) return 34;
+      // Available width = container width minus the 60px label column
+      const available = ganttWrap.clientWidth - 60;
+      if (available <= 0) return 34;
+      const ideal = Math.floor(available / hp);
+      return Math.max(20, Math.min(50, ideal > 0 ? ideal : 34));
+    }
+
+    function applyCellWidth(hp) {
+      const w = computeCellWidth(hp || _hyperperiod);
+      container.style.setProperty('--gantt-cell-w', w + 'px');
+    }
+
+    // Listen for container resize and update cell width automatically
+    if (window.ResizeObserver) {
+      const ro = new ResizeObserver(() => {
+        if (_hyperperiod > 0) applyCellWidth();
+      });
+      ro.observe(ganttWrap);
+    } else {
+      // Fallback for older browsers
+      window.addEventListener('resize', () => {
+        if (_hyperperiod > 0) applyCellWidth();
+      });
+    }
 
     function init(tasks, hyperperiod) {
+      _hyperperiod = hyperperiod;
       container.innerHTML = '';
       cellMap = {};
 
@@ -513,6 +546,9 @@
         axis.appendChild(lbl);
       }
       container.appendChild(axis);
+
+      // Apply responsive cell width after DOM is built
+      applyCellWidth(hyperperiod);
     }
 
     function fillStep(timeStep, taskIdx, tasks) {
@@ -570,6 +606,8 @@
       container.innerHTML = '';
       container.appendChild(emptyState);
       cellMap = {};
+      _hyperperiod = 0;
+      container.style.removeProperty('--gantt-cell-w');
     }
 
     clear();
