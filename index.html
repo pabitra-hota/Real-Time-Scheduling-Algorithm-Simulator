@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ RT-Sched Simulator — Real-Time Scheduling Algorithm Simulator</title>
+<meta name="description" content="Interactive browser-based Real-Time Scheduling Algorithm Simulator supporting Rate Monotonic (RM) and Earliest Deadline First (EDF) algorithms with live Gantt chart visualization.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- ===== HTML STRUCTURE ===== -->
+
+<!-- ── Header ── -->
+<header id="app-header">
+  <div class="gap-row">
+    <h1>⚡ RT-Sched Simulator</h1>
+    <span class="subtitle">Real-Time Scheduling Visualizer</span>
+  </div>
+  <span style="font-size:0.7rem;color:var(--text-muted);">RM &amp; EDF</span>
+</header>
+
+<!-- ── Main Two-Column Layout ── -->
+<main id="main-layout">
+
+  <!-- ── Left Panel: Inputs + Controls ── -->
+  <aside id="left-panel">
+
+    <!-- Algorithm Selection -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Algorithm</h2>
+      </div>
+      <div class="card-body">
+        <div id="algo-toggle">
+          <button class="algo-btn active" data-algo="RM" id="btn-rm">Rate Monotonic</button>
+          <button class="algo-btn" data-algo="EDF" id="btn-edf">Earliest Deadline First</button>
+        </div>
+        <div id="algo-description">
+          <strong>Rate Monotonic (RM):</strong> Fixed-priority preemptive scheduling. Tasks with shorter periods receive higher priority. Optimal among all fixed-priority algorithms.
+        </div>
+      </div>
+    </div>
+
+    <!-- Task Input -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Task Configuration</h2>
+        <span style="font-size:0.65rem;color:var(--text-muted);" id="task-count-badge">0 / 6 tasks</span>
+      </div>
+      <div class="card-body">
+        <div class="task-input-row">
+          <div class="input-group">
+            <label>Name</label>
+            <input type="text" id="inp-name" placeholder="T1" maxlength="6">
+          </div>
+          <div class="input-group">
+            <label>WCET (Cᵢ)</label>
+            <input type="number" id="inp-wcet" placeholder="1" min="1" max="50">
+          </div>
+          <div class="input-group">
+            <label>Period (Tᵢ)</label>
+            <input type="number" id="inp-period" placeholder="4" min="1" max="100">
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-accent" id="btn-add-task">＋ Add Task</button>
+          <button class="btn btn-danger" id="btn-clear-tasks">✕ Clear All</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Task Table -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Task Set</h2>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="task-table-wrapper">
+          <table class="task-table">
+            <thead>
+              <tr>
+                <th></th>
+                <th>Name</th>
+                <th>Cᵢ</th>
+                <th>Tᵢ</th>
+                <th>Prio</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="task-table-body">
+            </tbody>
+          </table>
+        </div>
+        <div id="task-table-empty" class="empty-state" style="padding:1.5rem;">
+          <p>No tasks added yet.<br>Add 1–6 tasks above.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Simulation Controls</h2>
+      </div>
+      <div class="card-body">
+        <div id="controls-bar">
+          <button class="ctrl-btn run-btn" id="btn-run" disabled>▶ Run</button>
+          <button class="ctrl-btn" id="btn-pause" disabled>⏸ Pause</button>
+          <button class="ctrl-btn" id="btn-step" disabled>⏭ Step</button>
+          <button class="ctrl-btn" id="btn-reset" disabled>🔄 Reset</button>
+          <div class="speed-control">
+            <label>Speed</label>
+            <input type="range" id="speed-slider" min="50" max="1000" value="300" step="50">
+            <span class="speed-val" id="speed-val">300ms</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ── Right Panel: Visualization ── -->
+  <section id="right-panel">
+
+    <!-- Gantt Chart -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Gantt Chart Timeline</h2>
+        <span style="font-size:0.65rem;color:var(--text-muted);" id="hyperperiod-badge"></span>
+      </div>
+      <div class="card-body">
+        <div id="gantt-container">
+          <div id="gantt-chart">
+            <div id="gantt-empty" class="empty-state">
+              <div class="icon">📊</div>
+              <p>Configure tasks and run the simulation<br>to see the Gantt chart here.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Execution Log -->
+    <div class="card">
+      <div class="card-header">
+        <h2>Execution Log</h2>
+        <span style="font-size:0.65rem;color:var(--text-muted);" id="log-count-badge"></span>
+      </div>
+      <div class="card-body" style="padding:0;">
+        <div id="exec-log">
+          <div class="empty-state" id="log-empty" style="padding:1.5rem;">
+            <p>Execution log will appear here after simulation starts.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats Panel -->
+    <div class="card" id="stats-panel">
+      <div class="card-header">
+        <h2>Simulation Statistics</h2>
+      </div>
+      <div class="card-body">
+        <div class="stats-grid" id="stats-grid"></div>
+      </div>
+    </div>
+
+  </section>
+</main>
+
+<script src="scheduler.js"></script>
+</body>
+</html>
